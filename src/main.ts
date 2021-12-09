@@ -219,7 +219,6 @@ export default class CitationPlugin extends Plugin {
         .then((entries: EntryData[]) => {
           let adapter: new (data: EntryData) => Entry;
           let idKey: string;
-
           switch (this.settings.citationExportFormat) {
             case 'biblatex':
               adapter = EntryBibLaTeXAdapter;

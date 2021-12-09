@@ -30,6 +30,8 @@ export const TEMPLATE_VARIABLES = {
   URL: '',
   year: 'Publication year',
   zoteroSelectURI: 'URI to open the reference in Zotero',
+  type: 'type',
+  keywords: '',
 };
 
 export class Library {
@@ -39,12 +41,35 @@ export class Library {
     return Object.keys(this.entries).length;
   }
 
+  // returning different string based on the type of the entry
+  createTypePlaceholder(type: string) {
+    switch (type) {
+      case 'video':
+        return '📹';
+      case 'online':
+        return '📃';
+      case 'book':
+        return '📚';
+      case 'article':
+        return '📜';
+      case 'inreference':
+        return '📒';
+      case 'software':
+        return '💾';
+      case 'audio':
+        return '🎙️';
+      default:
+        return type;
+    }
+  }
+
   /**
    * For the given citekey, find the corresponding `Entry` and return a
    * collection of template variable assignments.
    */
   getTemplateVariablesForCitekey(citekey: string): Record<string, any> {
     const entry: Entry = this.entries[citekey];
+    console.log(entry);
     const shortcuts = {
       citekey: citekey,
 
@@ -63,6 +88,9 @@ export class Library {
       URL: entry.URL,
       year: entry.year?.toString(),
       zoteroSelectURI: entry.zoteroSelectURI,
+      type: this.createTypePlaceholder(entry.type),
+      keywords: entry.keywords,
+      keywordsString: entry.keywordsString,
     };
 
     return { entry: entry.toJSON(), ...shortcuts };
@@ -119,11 +147,13 @@ export abstract class Entry {
 
   public abstract abstract?: string;
   public abstract author?: Author[];
+  public abstract keywords?: string[];
 
   /**
    * A comma-separated list of authors, each of the format `<firstname> <lastname>`.
    */
   public abstract authorString?: string;
+  public abstract keywordsString?: string;
 
   /**
    * The name of the container for this reference -- in the case of a book
@@ -213,6 +243,8 @@ export interface EntryDataCSL {
 
   abstract?: string;
   author?: Author[];
+  keywords?: string[];
+  keywordsString?: string;
   'container-title'?: string;
   DOI?: string;
   'event-place'?: string;
@@ -251,6 +283,17 @@ export class EntryCSLAdapter extends Entry {
   get authorString(): string | null {
     return this.data.author
       ? this.data.author.map((a) => `${a.given} ${a.family}`).join(', ')
+      : null;
+  }
+
+  get keywords() {
+    return this.data.keywords;
+  }
+
+  get keywordsString(): string | null {
+    // addQuotes then join
+    return this.data.keywords
+      ? this.data.keywords.map((k) => `[['${k}']]`).join(', ')
       : null;
   }
 
@@ -321,6 +364,8 @@ const BIBLATEX_PROPERTY_MAPPING: Record<string, string> = {
   year: '_year',
   publisher: 'publisher',
   note: '_note',
+  keywords: 'keywords',
+  keywordsString: 'keywordsString',
 };
 
 // BibLaTeX parser returns arrays of property values (allowing for repeated
@@ -364,6 +409,7 @@ export class EntryBibLaTeXAdapter extends Entry {
   URL?: string;
   _year?: string;
   _note?: string[];
+  keywords?: string[];
 
   constructor(private data: EntryDataBibLaTeX) {
     super();
@@ -404,14 +450,21 @@ export class EntryBibLaTeXAdapter extends Entry {
     return ret;
   }
 
+  get keywordsString() {
+    return this.keywords
+      ? this.keywords.map((k) => `- [[${k}]]`).join('\n')
+      : null;
+  }
+
   get authorString() {
-    if (this.data.creators.author) {
-      const names = this.data.creators.author.map((name) => {
-        if (name.literal) return name.literal;
+    if (Object.values(this.data.creators).length > 0) {
+      const names = Object.values(this.data.creators)[0].map((name) => {
+        if (name.literal) return addQuotes(name.literal);
         const parts = [name.firstName, name.prefix, name.lastName, name.suffix];
         // Drop any null parts and join
-        return parts.filter((x) => x).join(' ');
+        return addQuotes(parts.filter((x) => x).join(' '));
       });
+
       return names.join(', ');
     } else {
       return this.data.fields.author?.join(', ');
@@ -437,9 +490,13 @@ export class EntryBibLaTeXAdapter extends Entry {
   }
 
   get author(): Author[] {
-    return this.data.creators.author?.map((a) => ({
+    return Object.values(this.data.creators)[0]?.map((a) => ({
       given: a.firstName,
       family: a.lastName,
     }));
   }
+}
+
+function addQuotes(str: string) {
+  return `'${str}'`;
 }
