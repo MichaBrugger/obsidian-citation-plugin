@@ -1,6 +1,6 @@
 # Forked from Obsidian Citations
 
-## Why it exists and what it does
+## Why this fork exists and what it does
 
 I was trying to figure out some Zotero/Obsidian workflows yesterday and thought it would be pretty cool to go towards a more direct integration. Since I already really like the Citations plugin, I made a quick fork and added some quality of life changes. Progress so far:
 
