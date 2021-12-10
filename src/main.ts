@@ -140,6 +140,14 @@ export default class CitationPlugin extends Plugin {
     });
 
     this.addCommand({
+      id: 'create-all-literature-notes',
+      name: 'Create all literature notes',
+      callback: () => {
+        this.getOrCreateAllLiteratureNoteFiles();
+      },
+    });
+
+    this.addCommand({
       id: 'update-bib-data',
       name: 'Refresh citation database',
       hotkeys: [{ modifiers: ['Ctrl', 'Shift'], key: 'r' }],
@@ -238,7 +246,6 @@ export default class CitationPlugin extends Plugin {
           console.debug(
             `Citation plugin: successfully loaded library with ${this.library.size} entries.`,
           );
-
           return this.library;
         })
         .catch((e) => {
@@ -348,6 +355,7 @@ export default class CitationPlugin extends Plugin {
             path,
             this.getInitialContentForCitekey(citekey),
           );
+          console.log('Created new literature note file', file.path);
         } catch (exc) {
           this.literatureNoteErrorNotifier.show();
           throw exc;
@@ -356,6 +364,15 @@ export default class CitationPlugin extends Plugin {
     }
 
     return file as TFile;
+  }
+
+  /**
+   * create a new note for every citekey that doesn't exist in target folder
+   */
+  getOrCreateAllLiteratureNoteFiles() {
+    Object.keys(this.library.entries).map((citekey) =>
+      this.getOrCreateLiteratureNoteFile(citekey),
+    );
   }
 
   async openLiteratureNote(citekey: string, newPane: boolean): Promise<void> {

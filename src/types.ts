@@ -47,13 +47,13 @@ export class Library {
       case 'video':
         return '📹';
       case 'online':
-        return '📃';
+        return '📰';
       case 'book':
         return '📚';
       case 'article':
         return '📜';
       case 'inreference':
-        return '📒';
+        return '🗃️';
       case 'software':
         return '💾';
       case 'audio':
@@ -69,7 +69,6 @@ export class Library {
    */
   getTemplateVariablesForCitekey(citekey: string): Record<string, any> {
     const entry: Entry = this.entries[citekey];
-    console.log(entry);
     const shortcuts = {
       citekey: citekey,
 
