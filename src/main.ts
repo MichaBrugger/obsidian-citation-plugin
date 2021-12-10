@@ -246,6 +246,7 @@ export default class CitationPlugin extends Plugin {
           console.debug(
             `Citation plugin: successfully loaded library with ${this.library.size} entries.`,
           );
+          console.info('Your library: ', this.library);
           return this.library;
         })
         .catch((e) => {

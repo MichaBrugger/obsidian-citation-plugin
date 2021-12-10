@@ -1,9 +1,9 @@
 {
   "citationExportFormat": "biblatex",
   "literatureNoteTitleTemplate": "{{type}} {{title}}",
-  "literatureNoteFolder": "source",
-  "literatureNoteContentTemplate": "---\ntitle: {{title}}\nauthors: [{{authorString}}]\nyear: {{year}}\nurl: {{URL}}\n---\n\n# {{title}}\n\nSource: [Zotero]({{zoteroSelectURI}})\n\n## Related\n{{keywordsString}}",
+  "literatureNoteFolder": "Brain",
+  "literatureNoteContentTemplate": "---\ntitle: {{title}}\nauthors: [{{authorString}}]\nurl: {{URL}}\naccessed: ['{{entry.data.fields.urldate}}']\n---\n\n# {{title}}\n\nSource: [Zotero]({{zoteroSelectURI}})\n\n## Abstract\n{{abstract}}\n\n![[📝 {{title}}#Notes]]\n\n## Related\n{{keywordsString}}",
   "markdownCitationTemplate": "[[📝 {{title}}]]",
   "alternativeMarkdownCitationTemplate": "[[{{type}} {{title}}]]",
-  "citationExportPath": "Tagged.bib"
+  "citationExportPath": "Admin/Sources/Tagged.bib"
 }
