@@ -1,4 +1,20 @@
-# obsidian-citation-plugin
+# Forked from Obsidian Citations
+
+## Why it exists and what it does
+
+I was trying to figure out some Zotero/Obsidian workflows yesterday and thought it would be pretty cool to go towards a more direct integration. Since I already really like the Citations plugin, I made a quick fork and added some quality of life changes. Progress so far:
+
+- Access to all exported parameters (they were already accessible over entry.parameter in the normal plugin, but that's a bit buggy)
+
+- Automatic sync on-load or on-command: This checks for all source-files if they exist and if not creates them (just like Citations does already for single files). This way Obsidian is in sync with Zotero (or a sub-collection if you chose that)
+
+- Ability to replace certain parameters: Might not be useful to most, but I personally prefix my files with their type (I use emojis for that) so now I can directly generate files like "🎙️ Mo Gawdat on Artificial Intelligence". This also works for things like the author where I liked having them like ['Author A', 'Author B'] so it gets picked up by Breadcrumbs (so far it wasn't possible for multiple authors in this way)
+
+- Besides the automation part it comes in kinda handy that it's within the Citations plugin, so one gets to use all the existing citing functionality
+
+---
+
+# Obsidian Citations Documentation
 
 This plugin for [Obsidian](https://obsidian.md) integrates your academic reference manager with the Obsidian editing experience.
 
