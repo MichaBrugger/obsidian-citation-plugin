@@ -2,8 +2,8 @@
   "citationExportFormat": "biblatex",
   "literatureNoteTitleTemplate": "{{type}} {{title}}",
   "literatureNoteFolder": "Brain",
-  "literatureNoteContentTemplate": "---\ntitle: {{title}}\nauthors: [{{authorString}}]\nurl: {{URL}}\naccessed: ['{{entry.data.fields.urldate}}']\n---\n\n# {{title}}\n\nSource: [Zotero]({{zoteroSelectURI}})\n\n## Abstract\n{{abstract}}\n\n![[📝 {{title}}#Notes]]\n\n## Related\n{{keywordsString}}",
+  "literatureNoteContentTemplate": "---\ntags:\naliases:\ntype: ['{{entry.type}}']\nsource: ['zotero']\nauthors: [{{authorString}}]\nurl: {{URL}}\ntitle: {{title}}\naccessed: ['{{entry.data.fields.urldate}}']\n---\n\n# {{title}}\n\nSource: [Zotero]({{zoteroSelectURI}})\n\n## Abstract\n{{abstract}}\n\n![[📝 {{title}}#Notes]]\n\n## Notes\n{{entry._note}}\n\n## Related\n{{keywordsString}}",
   "markdownCitationTemplate": "[[📝 {{title}}]]",
   "alternativeMarkdownCitationTemplate": "[[{{type}} {{title}}]]",
-  "citationExportPath": "Admin/Sources/Tagged.bib"
+  "citationExportPath": "Admin/Sources/Zotero.bib"
 }
