@@ -234,6 +234,23 @@ export class InsertNoteLinkModal extends SearchModal {
   }
 }
 
+export class InsertFootnoteModal extends SearchModal {
+  constructor(app: App, plugin: CitationPlugin) {
+    super(app, plugin);
+
+    this.setInstructions([
+      { command: '↑↓', purpose: 'to navigate' },
+      { command: '↵', purpose: 'to insert footnote reference' },
+      { command: 'esc', purpose: 'to dismiss' },
+    ]);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onChooseItem(item: Entry, evt: unknown): void {
+    this.plugin.insertFootnote(item.id).catch(console.error);
+  }
+}
+
 export class InsertNoteContentModal extends SearchModal {
   constructor(app: App, plugin: CitationPlugin) {
     super(app, plugin);

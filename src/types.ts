@@ -87,7 +87,7 @@ export class Library {
       URL: entry.URL,
       year: entry.year?.toString(),
       zoteroSelectURI: entry.zoteroSelectURI,
-      type: this.createTypePlaceholder(entry.type),
+      type: entry.type,
       keywords: entry.keywords,
       keywordsString: entry.keywordsString,
     };
@@ -458,10 +458,10 @@ export class EntryBibLaTeXAdapter extends Entry {
   get authorString() {
     if (Object.values(this.data.creators).length > 0) {
       const names = Object.values(this.data.creators)[0].map((name) => {
-        if (name.literal) return addQuotes(name.literal);
+        if (name.literal) return name.literal;
         const parts = [name.firstName, name.prefix, name.lastName, name.suffix];
         // Drop any null parts and join
-        return addQuotes(parts.filter((x) => x).join(' '));
+        return parts.filter((x) => x).join(' ');
       });
 
       return names.join(', ');

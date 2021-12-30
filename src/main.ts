@@ -20,6 +20,7 @@ import {
   InsertNoteLinkModal,
   InsertNoteContentModal,
   OpenNoteModal,
+  InsertFootnoteModal,
 } from './modals';
 import { VaultExt } from './obsidian-extensions.d';
 import { CitationSettingTab, CitationsPluginSettings } from './settings';
@@ -42,6 +43,10 @@ import LoadWorker from 'web-worker:./worker';
 export default class CitationPlugin extends Plugin {
   settings: CitationsPluginSettings;
   library: Library;
+
+  private detailLineRegex = /\[\^(\d+)\]:/;
+  private reOnlyMarkers = /\[\^(\d+)\]/gi;
+  private numericalRe = /(\d+)/;
 
   // Template compilation options
   private templateSettings = {
@@ -162,6 +167,16 @@ export default class CitationPlugin extends Plugin {
       hotkeys: [{ modifiers: ['Ctrl', 'Shift'], key: 'e' }],
       callback: () => {
         const modal = new InsertNoteLinkModal(this.app, this);
+        modal.open();
+      },
+    });
+
+    this.addCommand({
+      id: 'insert-footnote',
+      name: 'Insert footnote',
+      hotkeys: [{ modifiers: ['Ctrl', 'Shift'], key: 'u' }],
+      callback: () => {
+        const modal = new InsertFootnoteModal(this.app, this);
         modal.open();
       },
     });
@@ -370,9 +385,215 @@ export default class CitationPlugin extends Plugin {
   /**
    * create a new note for every citekey that doesn't exist in target folder
    */
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
   getOrCreateAllLiteratureNoteFiles() {
     Object.keys(this.library.entries).map((citekey) =>
       this.getOrCreateLiteratureNoteFile(citekey),
+    );
+  }
+
+  /**
+   * insert a footnote for the chosen citekey
+   */
+  async insertFootnote(citekey: string): Promise<void> {
+    this.getOrCreateLiteratureNoteFile(citekey)
+      .then((file: TFile) => {
+        const useMarkdown: boolean = (<VaultExt>this.app.vault).getConfig(
+          'useMarkdownLinks',
+        );
+        const title = this.getTitleForCitekey(citekey);
+
+        let linkText: string;
+        if (useMarkdown) {
+          const uri = encodeURI(
+            this.app.metadataCache.fileToLinktext(file, '', false),
+          );
+          linkText = `[${title}](${uri})`;
+        } else {
+          linkText = `[[${title}]]`;
+        }
+        if (this.shouldJumpFromDetailToMarker()) return;
+        if (this.shouldJumpFromMarkerToDetail()) return;
+
+        return this.shouldCreateNewFootnote(linkText);
+      })
+      .catch(console.error);
+  }
+
+  /**
+   * create a footnote and jump to last row of the file
+   */
+  private shouldJumpFromDetailToMarker(): boolean {
+    // check if we're in a footnote detail line ("[^1]: footnote")
+    // if so, jump cursor back to the footnote in the text
+    // https://github.com/akaalias/obsidian-footnotes#improved-quick-navigation
+    const lineText = this.editor.getLine(this.editor.getCursor().line);
+    const match = lineText.match(this.detailLineRegex);
+    if (match) {
+      const s = match[0];
+      let index = s.replace('[^', '');
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      index = index.replace(']:', '');
+      const footnote = s.replace(':', '');
+
+      let returnLineIndex = this.editor.getCursor().line;
+      // find the FIRST OCCURRENCE where this footnote exists in the text
+      for (let i = 0; i < this.editor.lineCount(); i++) {
+        const scanLine = this.editor.getLine(i);
+        if (scanLine.contains(footnote)) {
+          const cursorLocationIndex = scanLine.indexOf(footnote);
+          returnLineIndex = i;
+          this.editor.setCursor({
+            line: returnLineIndex,
+            ch: cursorLocationIndex + footnote.length,
+          });
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private shouldJumpFromMarkerToDetail() {
+    // Jump cursor TO detail marker
+    // check if the cursor is inside or left or right of a footnote in a line
+    // if so, jump cursor to the footnote detail line
+    // https://github.com/akaalias/obsidian-footnotes#improved-quick-navigation
+
+    // does this line have a footnote marker?
+    // does the cursor overlap with one of them?
+    // if so, which one?
+    // find this footnote marker's detail line
+    // place cursor there
+    const lineText = this.editor.getLine(this.editor.getCursor().line);
+    const reOnlyMarkersMatches = lineText.match(this.reOnlyMarkers);
+
+    let markerTarget = null;
+
+    if (reOnlyMarkersMatches) {
+      for (let i = 0; i < reOnlyMarkersMatches.length; i++) {
+        const marker = reOnlyMarkersMatches[i];
+        if (marker != undefined) {
+          const indexOfMarkerInLine = lineText.indexOf(marker);
+          if (
+            this.editor.getCursor().ch >= indexOfMarkerInLine &&
+            this.editor.getCursor().ch <= indexOfMarkerInLine + marker.length
+          ) {
+            markerTarget = marker;
+            break;
+          }
+        }
+      }
+    }
+    if (markerTarget != null) {
+      // extract index
+      const match = markerTarget.match(this.numericalRe);
+      if (match) {
+        const indexString = match[0];
+        const markerIndex = Number(indexString);
+
+        // find the first line with this detail marker index in it.
+        for (let i = 0; i < this.editor.lineCount(); i++) {
+          const theLine = this.editor.getLine(i);
+          const lineMatch = theLine.match(this.detailLineRegex);
+          if (lineMatch) {
+            // compare to the index
+            const indexMatch = lineMatch[1];
+            const indexMatchNumber = Number(indexMatch);
+            if (indexMatchNumber == markerIndex) {
+              this.editor.setCursor({ line: i, ch: lineMatch[0].length });
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  private shouldCreateNewFootnote(linkText: string) {
+    // create new footnote with the next numerical index
+    const markdownText = this.editor.getValue();
+    const lineText = this.editor.getLine(this.editor.getCursor().line);
+    const linePart1 = lineText.substr(0, this.editor.getCursor().ch);
+    const linePart2 = lineText.substr(this.editor.getCursor().ch);
+
+    const matches = markdownText.match(this.reOnlyMarkers);
+    const numbers: Array<number> = [];
+    let currentMax = 1;
+
+    // loop every line where a footnote marker is present
+    for (let i = 0; i < this.editor.lineCount(); i++) {
+      const theLine = this.editor.getLine(i);
+      const lineMatch = theLine.match(this.detailLineRegex);
+      if (lineMatch) {
+        // remove lineMatch[0] from the line
+        const lineWithoutMarker = theLine.replace(lineMatch[0], '').trim();
+        if (lineWithoutMarker == linkText) {
+          const newLine = linePart1 + '[^' + lineMatch[1] + ']' + linePart2;
+          this.setFootnoteInText(newLine, lineText);
+          return;
+        }
+
+        const indexMatch = lineMatch[1];
+        const indexMatchNumber = Number(indexMatch);
+        if (indexMatchNumber > currentMax) {
+          currentMax = indexMatchNumber;
+        }
+      }
+    }
+
+    if (matches != null) {
+      for (let i = 0; i <= matches.length - 1; i++) {
+        let match = matches[i];
+        // get line of match
+        match = match.replace('[^', '');
+        match = match.replace(']', '');
+        const matchNumber = Number(match);
+        numbers[i] = matchNumber;
+        if (matchNumber + 1 > currentMax) {
+          currentMax = matchNumber + 1;
+        }
+      }
+    }
+
+    const footNoteId = currentMax;
+    const footnoteMarker = `[^${footNoteId}]`;
+    const newLine = linePart1 + footnoteMarker + linePart2;
+    this.setFootnoteInText(newLine, lineText);
+
+    const lastLine = this.editor.getLine(this.editor.lineCount() - 1);
+    // remove all [ and ] from the linkText
+    const linkTextWithoutMarkers = linkText.replace(/\[|\]/g, '');
+    // const footnoteDetail = `[^${footNoteId}]: ${linkText}`;
+    let footnoteDetail = `[^${footNoteId}]: `;
+
+    if (lastLine.length > 0) {
+      // this.editor.setLine(
+      //   this.editor.lastLine(),
+      //   lastLine +
+      //     '\n' +
+      //     footnoteDetail +
+      //     this.returnMarkdownCitation(lastLine, linkTextWithoutMarkers),
+      // );
+      footnoteDetail = lastLine + '\n' + footnoteDetail;
+      console.log(footnoteDetail);
+    }
+    this.returnMarkdownCitation(footnoteDetail, linkTextWithoutMarkers);
+    this.editor.setCursor(this.editor.lineCount() - 1, 0);
+    if (this.shouldJumpFromDetailToMarker()) return;
+  }
+
+  /**
+   * setting the actual footnote in the text
+   * @param newLine full string for the new line (including the footnote marker)
+   * @param lineText the line where the cursor is
+   */
+  private setFootnoteInText(newLine: string, lineText: string) {
+    this.editor.replaceRange(
+      newLine,
+      { line: this.editor.getCursor().line, ch: 0 },
+      { line: this.editor.getCursor().line, ch: lineText.length },
     );
   }
 
@@ -424,7 +645,22 @@ export default class CitationPlugin extends Plugin {
       ? this.getAlternativeMarkdownCitationForCitekey
       : this.getMarkdownCitationForCitekey;
     const citation = func.bind(this)(citekey);
+    console.log(citation);
 
     this.editor.replaceRange(citation, this.editor.getCursor());
+  }
+
+  async returnMarkdownCitation(
+    footnoteDetail: string,
+    citekey: string,
+    alternative = false,
+  ): Promise<void> {
+    const func = alternative
+      ? this.getAlternativeMarkdownCitationForCitekey
+      : this.getMarkdownCitationForCitekey;
+    const citation: string = func.bind(this)(citekey);
+
+    const fullLine = footnoteDetail + citation;
+    this.editor.setLine(this.editor.lastLine(), fullLine);
   }
 }
