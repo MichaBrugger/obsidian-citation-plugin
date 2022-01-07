@@ -35,8 +35,10 @@ export const TEMPLATE_VARIABLES = {
   URL: '',
   year: 'Publication year',
   zoteroSelectURI: 'URI to open the reference in Zotero',
-  bibAPA: '(BibLaTeX only) Prebuilt APA-style bibliography',
-  inlineAPA: '(BibLaTeX only) Prebuilt APA-style in-text reference',
+  bibAPA:
+    '(dont use at the moment, its not complete) Prebuilt APA-style bibliography',
+  inlineAPA:
+    '(dont use at the moment, its not complete) Prebuilt APA-style in-text reference',
   issueDateLong: '(BibLaTeX only) Date of publication (e.g. 2020, May 20)',
   domain: '(BibLaTeX only) Domain of the URL (e.g. example.com)',
 };
