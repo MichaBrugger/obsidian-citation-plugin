@@ -638,7 +638,7 @@ export class EntryBibLaTeXAdapter extends Entry {
       '("' +
       entry.containerTitle +
       '", ' +
-      entry.issuedDate.getUTCFullYear() +
+      entry.issuedDate?.getUTCFullYear() +
       ')'
     );
   }
@@ -662,7 +662,7 @@ export class EntryBibLaTeXAdapter extends Entry {
   createInline(entry: Entry): string {
     let c = '';
     if (entry.page) c = ', ';
-    return `(${this.creatorEtAl}, ${entry.issuedDate.getUTCFullYear()}${
+    return `(${this.creatorEtAl}, ${entry.issuedDate?.getUTCFullYear()}${
       c + this.getPages()
     })`;
   }

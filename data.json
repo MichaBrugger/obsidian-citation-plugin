@@ -3,7 +3,7 @@
   "literatureNoteTitleTemplate": "{{citekey}}",
   "literatureNoteFolder": "Admin/Zotero",
   "literatureNoteContentTemplate": "---\ntags:\ntype: [{{entry.type}}]\naliases:\nsource: [zotero]\nauthors: [{{authorString}}]\nurl: {{URL}}\ntitle: {{title}}\ncreated: {{entry.data.fields.urldate}}\n---\n\n# {{title}}\n\n[Zotero]({{zoteroSelectURI}})\n[Link]({{URL}})\n\n{{entry._note}}",
-  "markdownCitationTemplate": "[[{{citekey}}]]",
+  "markdownCitationTemplate": "[[{{citekey}}|{{title}}]]",
   "alternativeMarkdownCitationTemplate": "[[{{citekey}}|{{title}}]]",
   "citationExportPath": "Admin/Zotero/Library.bib"
 }
