@@ -674,9 +674,9 @@ export class EntryBibLaTeXAdapter extends Entry {
 
   get issueDateLong(): string {
     return (
-      this.issuedDate.getUTCFullYear() +
+      this.issuedDate?.getUTCFullYear() +
       ', ' +
-      this.issuedDate.toLocaleString('en', {
+      this.issuedDate?.toLocaleString('en', {
         month: 'long',
         day: '2-digit',
       })

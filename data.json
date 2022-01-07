@@ -1,9 +1,9 @@
 {
   "citationExportFormat": "biblatex",
   "literatureNoteTitleTemplate": "{{citekey}}",
-  "literatureNoteFolder": "Admin/Sources",
-  "literatureNoteContentTemplate": "---\ntags:\ntype: [{{entry.type}}]\naliases:\nsource: [zotero]\nauthors: [{{authorString}}]\nurl: {{URL}}\ntitle: {{title}}\ncreated: {{entry.data.fields.urldate}}\n---\n\n# {{title}}\n\n[Zotero]({{zoteroSelectURI}})\n[Link]({{URL}})\n\n{{entry._note}}\n\n# Related\n\n{{keywordsString}}",
-  "markdownCitationTemplate": "[[{{citekey}}|{{creatorEtAl}} ({{issueDateLong}})]]",
-  "alternativeMarkdownCitationTemplate": "[[{{citekey}}|{{creatorEtAl}} - {{title}}]]",
-  "citationExportPath": "Admin/Zotero/Processed.bib"
+  "literatureNoteFolder": "Admin/Zotero",
+  "literatureNoteContentTemplate": "---\ntags:\ntype: [{{entry.type}}]\naliases:\nsource: [zotero]\nauthors: [{{authorString}}]\nurl: {{URL}}\ntitle: {{title}}\ncreated: {{entry.data.fields.urldate}}\n---\n\n# {{title}}\n\n[Zotero]({{zoteroSelectURI}})\n[Link]({{URL}})\n\n{{entry._note}}",
+  "markdownCitationTemplate": "[[{{citekey}}]]",
+  "alternativeMarkdownCitationTemplate": "[[{{citekey}}|{{title}}]]",
+  "citationExportPath": "Admin/Zotero/Library.bib"
 }
