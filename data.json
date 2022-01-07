@@ -1,9 +1,9 @@
 {
   "citationExportFormat": "biblatex",
   "literatureNoteTitleTemplate": "{{citekey}}",
-  "literatureNoteFolder": "Forks/Sources",
-  "literatureNoteContentTemplate": "---\ntags:\naliases:\ntype: ['{{entry.type}}']\nsource: ['zotero']\nauthors: [{{authorString}}]\nurl: {{URL}}\ntitle: {{title}}\naccessed: ['{{entry.data.fields.urldate}}']\n---\n\n# {{title}}\n\nSource: [Zotero]({{zoteroSelectURI}})\n\n## Abstract\n{{abstract}}\n\n![[📝 {{title}}#Notes]]\n\n## Notes\n{{entry._note}}\n\n## Related\n{{keywordsString}}",
-  "markdownCitationTemplate": "[[{{citekey}}|{{authorString}} ({{year}}) {{title}}]]",
-  "alternativeMarkdownCitationTemplate": "[[{{citekey}}|{{authorString}} ({{year}}) {{title}}]]",
-  "citationExportPath": "Forks/Zotero/Library.bib"
+  "literatureNoteFolder": "Admin/Sources",
+  "literatureNoteContentTemplate": "---\ntags:\ntype: [{{entry.type}}]\naliases:\nsource: [zotero]\nauthors: [{{authorString}}]\nurl: {{URL}}\ntitle: {{title}}\ncreated: {{entry.data.fields.urldate}}\n---\n\n# {{title}}\n\n[Zotero]({{zoteroSelectURI}})\n[Link]({{URL}})\n\n{{entry._note}}\n\n# Related\n\n{{keywordsString}}",
+  "markdownCitationTemplate": "[[{{citekey}}|{{creatorEtAl}} ({{issueDateLong}})]]",
+  "alternativeMarkdownCitationTemplate": "[[{{citekey}}|{{creatorEtAl}} - {{title}}]]",
+  "citationExportPath": "Admin/Zotero/Processed.bib"
 }

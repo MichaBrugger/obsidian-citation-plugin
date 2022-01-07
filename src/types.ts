@@ -13,25 +13,32 @@ const databaseTypes = ['csl-json', 'biblatex'] as const;
 export type DatabaseType = typeof databaseTypes[number];
 
 export const TEMPLATE_VARIABLES = {
-  citekey: 'Unique citekey',
   abstract: '',
+  authEtAl:
+    'Name format is "Smith, J." (> 2 authors are abbreviated to et al.)',
   authorString: 'Comma-separated list of author names',
+  citekey: 'Unique citekey',
   containerTitle:
     'Title of the container holding the reference (e.g. book title for a book chapter, or the journal title for a journal article)',
+  creatorEtAl: 'just like authEtAl but based on the creator field',
   DOI: '',
   eprint: '',
   eprinttype: '',
   eventPlace: 'Location of event',
+  keywords: '',
   note: '',
   page: 'Page or page range',
   publisher: '',
   publisherPlace: 'Location of publisher',
   title: '',
+  type: 'Zotero item type (e.g. article, book, etc.)',
   URL: '',
   year: 'Publication year',
   zoteroSelectURI: 'URI to open the reference in Zotero',
-  type: 'type',
-  keywords: '',
+  bibAPA: '(BibLaTeX only) Prebuilt APA-style bibliography',
+  inlineAPA: '(BibLaTeX only) Prebuilt APA-style in-text reference',
+  issueDateLong: '(BibLaTeX only) Date of publication (e.g. 2020, May 20)',
+  domain: '(BibLaTeX only) Domain of the URL (e.g. example.com)',
 };
 
 export class Library {
@@ -40,29 +47,6 @@ export class Library {
   get size(): number {
     return Object.keys(this.entries).length;
   }
-
-  // returning different string based on the type of the entry
-  createTypePlaceholder(type: string) {
-    switch (type) {
-      case 'video':
-        return '📹';
-      case 'online':
-        return '📰';
-      case 'book':
-        return '📚';
-      case 'article':
-        return '📜';
-      case 'inreference':
-        return '🗃️';
-      case 'software':
-        return '💾';
-      case 'audio':
-        return '🎙️';
-      default:
-        return type;
-    }
-  }
-
   /**
    * For the given citekey, find the corresponding `Entry` and return a
    * collection of template variable assignments.
@@ -71,6 +55,16 @@ export class Library {
     const entry: Entry = this.entries[citekey];
     const shortcuts = {
       citekey: citekey,
+
+      type: entry.type,
+      keywords: entry.keywords,
+      keywordsString: entry.keywordsString,
+      authEtAl: entry.authEtAl,
+      bibAPA: entry.bibAPA,
+      inlineAPA: entry.inlineAPA,
+      accessDate: entry.accessDate,
+      creatorEtAl: entry.creatorEtAl,
+      issueDateLong: entry.issueDateLong,
 
       abstract: entry.abstract,
       authorString: entry.authorString,
@@ -87,9 +81,6 @@ export class Library {
       URL: entry.URL,
       year: entry.year?.toString(),
       zoteroSelectURI: entry.zoteroSelectURI,
-      type: entry.type,
-      keywords: entry.keywords,
-      keywordsString: entry.keywordsString,
     };
 
     return { entry: entry.toJSON(), ...shortcuts };
@@ -197,6 +188,9 @@ export abstract class Entry {
       : this.issuedDate?.getUTCFullYear();
   }
 
+  public abstract accessDate?: string;
+  public abstract creatorEtAl?: string;
+  public abstract issueDateLong?: string;
   protected _note?: string[];
 
   public get note(): string {
@@ -210,6 +204,42 @@ export abstract class Entry {
    */
   public get zoteroSelectURI(): string {
     return `zotero://select/items/@${this.id}`;
+  }
+
+  public abstract bibAPA?: string;
+  public abstract inlineAPA?: string;
+
+  public get authEtAl(): string {
+    if (this.author) {
+      let authEtAl = '';
+      let cutAfter = 3;
+
+      if (cutAfter > this.author?.length) {
+        cutAfter = this.author?.length;
+      }
+
+      for (let i = 0; i < cutAfter; i++) {
+        if (this.author[i].family != undefined) {
+          if (i > 0) {
+            authEtAl += ', ';
+            if (i == cutAfter - 1 && this.author.length <= cutAfter) {
+              authEtAl += '& ';
+            }
+          }
+          authEtAl += this.author[i].family;
+          if (
+            this.author[i].given != undefined &&
+            this.author.length <= cutAfter
+          ) {
+            authEtAl += ', ' + this.author[i].given.charAt(0) + '.';
+          }
+        }
+      }
+      if (this.author.length > cutAfter) {
+        authEtAl += ' et al.';
+      }
+      return authEtAl;
+    }
   }
 
   toJSON(): Record<string, unknown> {
@@ -239,7 +269,6 @@ export type EntryData = EntryDataCSL | EntryDataBibLaTeX;
 export interface EntryDataCSL {
   id: string;
   type: string;
-
   abstract?: string;
   author?: Author[];
   keywords?: string[];
@@ -257,6 +286,7 @@ export interface EntryDataCSL {
 }
 
 export class EntryCSLAdapter extends Entry {
+  public citeBibliographyType: string;
   constructor(private data: EntryDataCSL) {
     super();
   }
@@ -264,6 +294,11 @@ export class EntryCSLAdapter extends Entry {
   eprint: string = null;
   eprinttype: string = null;
   files: string[] = null;
+  bibAPA: string = null;
+  inlineAPA: string = null;
+  accessDate: string = null;
+  creatorEtAl: string = null;
+  issueDateLong: string = null;
 
   get id() {
     return this.data.id;
@@ -363,8 +398,12 @@ const BIBLATEX_PROPERTY_MAPPING: Record<string, string> = {
   year: '_year',
   publisher: 'publisher',
   note: '_note',
+
   keywords: 'keywords',
   keywordsString: 'keywordsString',
+  domain: 'domain',
+  authEtAl: 'authEtAl',
+  bibAPA: 'bibAPA',
 };
 
 // BibLaTeX parser returns arrays of property values (allowing for repeated
@@ -449,6 +488,13 @@ export class EntryBibLaTeXAdapter extends Entry {
     return ret;
   }
 
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+  get accessDate(): string | null {
+    if (this.data.fields.urldate) {
+      return this.data.fields.urldate[0];
+    }
+  }
+
   get keywordsString() {
     return this.keywords
       ? this.keywords.map((k) => `- [[${k}]]`).join('\n')
@@ -494,8 +540,188 @@ export class EntryBibLaTeXAdapter extends Entry {
       family: a.lastName,
     }));
   }
-}
 
-function addQuotes(str: string) {
-  return `'${str}'`;
+  public get domain(): string {
+    let domain = '';
+    if (this.URL) {
+      domain = new URL(this.URL).hostname.replace(/^www\./, '');
+    }
+    this.capitalize(domain);
+    return this.capitalize(domain).split('.')[0];
+  }
+
+  public get bibAPA(): string {
+    return this.createBibAPA(this);
+  }
+
+  public get inlineAPA(): string {
+    return this.createInlineAPA(this);
+  }
+
+  // returning different string based on the type of the entry
+  createBibAPA(entry: Entry) {
+    switch (entry.type) {
+      case 'video':
+        return this.createBib(entry);
+      case 'book':
+        return this.createBib(entry);
+      case 'inreference':
+        return this.createBibInReference(entry);
+      case 'online':
+        return this.createBib(entry);
+      case 'incollection':
+        return this.createBibInCollection(entry);
+      default:
+        return entry.type;
+    }
+  }
+
+  createInlineAPA(entry: Entry) {
+    switch (entry.type) {
+      case 'video':
+        return this.createInline(entry);
+      case 'book':
+        return this.createInline(entry);
+      case 'inreference':
+        return this.createInlineInReference(entry);
+      case 'online':
+        return this.createInline(entry);
+      case 'incollection':
+        return this.createInline(entry);
+      default:
+        return entry.type;
+    }
+  }
+
+  createBibInCollection(entry: Entry) {
+    return `${this.creatorEtAl} (${entry.issuedDate?.getFullYear()}). ${
+      entry.title
+    }. In ${entry.containerTitle + this.addBrackets(this.getPages())}. ${
+      entry.publisher
+    }. ${entry.publisherPlace} . ${entry.DOI ? `DOI: ${entry.DOI}` : ''}`;
+  }
+
+  getPages(): string {
+    if (this.page) {
+      // if includes non-numeric characters, assume its a range of pages
+      if (this.page.match(/[^0-9]/)) {
+        return `pp. ${this.page}`;
+      } else {
+        return `p. ${this.page}`;
+      }
+    }
+    return '';
+  }
+
+  addBrackets(str: string) {
+    return `(${str})`;
+  }
+
+  createBibInReference(entry: Entry) {
+    return (
+      this.creatorEtAl +
+      ' (' +
+      this.issueDateLong +
+      '). ' +
+      entry.title +
+      '. In ' +
+      entry.containerTitle +
+      '. ' +
+      entry.URL
+    );
+  }
+
+  createInlineInReference(entry: Entry) {
+    return (
+      '("' +
+      entry.containerTitle +
+      '", ' +
+      entry.issuedDate.getUTCFullYear() +
+      ')'
+    );
+  }
+
+  createBib(entry: Entry) {
+    return (
+      this.creatorEtAl +
+      ' (' +
+      this.issueDateLong +
+      '). ' +
+      entry.title +
+      ' [' +
+      this.capitalize(entry.type) +
+      ']. ' +
+      this.capitalize(this.domain) +
+      '. ' +
+      entry.URL
+    );
+  }
+
+  createInline(entry: Entry): string {
+    let c = '';
+    if (entry.page) c = ', ';
+    return `(${this.creatorEtAl}, ${entry.issuedDate.getUTCFullYear()}${
+      c + this.getPages()
+    })`;
+  }
+
+  // Capitalize the first letter the string
+  capitalize(str: string) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  get issueDateLong(): string {
+    return (
+      this.issuedDate.getUTCFullYear() +
+      ', ' +
+      this.issuedDate.toLocaleString('en', {
+        month: 'long',
+        day: '2-digit',
+      })
+    );
+  }
+
+  public get creatorEtAl() {
+    let creatorEtAl = '';
+    let counter = 0;
+    let totalCreators = 0;
+
+    const cutAfter = 2;
+    const creators = Object.values(this.data.creators);
+
+    if (creators.length > 0) {
+      for (const creatorType of creators) {
+        totalCreators += creatorType.length;
+      }
+
+      if (totalCreators > 0) {
+        // looping through the different creator types
+        for (let i = 0; i < creators.length; i++) {
+          if (counter >= cutAfter) break;
+          if (i > 0) creatorEtAl += ', ';
+
+          const names = creators[i].map((name) => {
+            counter++;
+
+            if (counter > cutAfter) return 'et al.';
+            if (name.literal) return name.literal;
+            if (totalCreators > cutAfter) return name.lastName;
+            const parts = [name.lastName, name.firstName.charAt(0) + '.'];
+            return parts.filter((x) => x).join(' ');
+          });
+
+          if (
+            totalCreators > 1 &&
+            counter == totalCreators &&
+            totalCreators <= cutAfter
+          ) {
+            names[names.length - 1] = '& ' + names[names.length - 1];
+          }
+          creatorEtAl += names.join(', ');
+        }
+      }
+    }
+
+    return creatorEtAl;
+  }
 }

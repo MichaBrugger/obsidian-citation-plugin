@@ -86,6 +86,7 @@ export default class CitationPlugin extends Plugin {
       'literatureNoteContentTemplate',
       'markdownCitationTemplate',
       'alternativeMarkdownCitationTemplate',
+      'APA_Book_BibTemplate',
     ];
     toLoad.forEach((setting) => {
       if (setting in loadedSettings) {
@@ -397,25 +398,11 @@ export default class CitationPlugin extends Plugin {
    */
   async insertFootnote(citekey: string): Promise<void> {
     this.getOrCreateLiteratureNoteFile(citekey)
-      .then((file: TFile) => {
-        const useMarkdown: boolean = (<VaultExt>this.app.vault).getConfig(
-          'useMarkdownLinks',
-        );
-        const title = this.getTitleForCitekey(citekey);
-
-        let linkText: string;
-        if (useMarkdown) {
-          const uri = encodeURI(
-            this.app.metadataCache.fileToLinktext(file, '', false),
-          );
-          linkText = `[${title}](${uri})`;
-        } else {
-          linkText = `[[${title}]]`;
-        }
+      .then(() => {
         if (this.shouldJumpFromDetailToMarker()) return;
         if (this.shouldJumpFromMarkerToDetail()) return;
 
-        return this.shouldCreateNewFootnote(linkText);
+        return this.shouldCreateNewFootnote(citekey);
       })
       .catch(console.error);
   }
@@ -511,12 +498,13 @@ export default class CitationPlugin extends Plugin {
     return false;
   }
 
-  private shouldCreateNewFootnote(linkText: string) {
+  async shouldCreateNewFootnote(citekey: string) {
     // create new footnote with the next numerical index
     const markdownText = this.editor.getValue();
     const lineText = this.editor.getLine(this.editor.getCursor().line);
     const linePart1 = lineText.substr(0, this.editor.getCursor().ch);
     const linePart2 = lineText.substr(this.editor.getCursor().ch);
+    const linkString = await this.returnMarkdownCitation(citekey);
 
     const matches = markdownText.match(this.reOnlyMarkers);
     const numbers: Array<number> = [];
@@ -529,7 +517,7 @@ export default class CitationPlugin extends Plugin {
       if (lineMatch) {
         // remove lineMatch[0] from the line
         const lineWithoutMarker = theLine.replace(lineMatch[0], '').trim();
-        if (lineWithoutMarker == linkText) {
+        if (lineWithoutMarker == linkString) {
           const newLine = linePart1 + '[^' + lineMatch[1] + ']' + linePart2;
           this.setFootnoteInText(newLine, lineText);
           return;
@@ -564,22 +552,15 @@ export default class CitationPlugin extends Plugin {
 
     const lastLine = this.editor.getLine(this.editor.lineCount() - 1);
     // remove all [ and ] from the linkText
-    const linkTextWithoutMarkers = linkText.replace(/\[|\]/g, '');
     // const footnoteDetail = `[^${footNoteId}]: ${linkText}`;
     let footnoteDetail = `[^${footNoteId}]: `;
 
     if (lastLine.length > 0) {
-      // this.editor.setLine(
-      //   this.editor.lastLine(),
-      //   lastLine +
-      //     '\n' +
-      //     footnoteDetail +
-      //     this.returnMarkdownCitation(lastLine, linkTextWithoutMarkers),
-      // );
       footnoteDetail = lastLine + '\n' + footnoteDetail;
       console.log(footnoteDetail);
     }
-    this.returnMarkdownCitation(footnoteDetail, linkTextWithoutMarkers);
+    // this.returnMarkdownCitation(footnoteDetail, linkTextWithoutMarkers);
+    this.editor.setLine(this.editor.lastLine(), footnoteDetail + linkString);
     this.editor.setCursor(this.editor.lineCount() - 1, 0);
     if (this.shouldJumpFromDetailToMarker()) return;
   }
@@ -651,16 +632,13 @@ export default class CitationPlugin extends Plugin {
   }
 
   async returnMarkdownCitation(
-    footnoteDetail: string,
     citekey: string,
-    alternative = false,
-  ): Promise<void> {
+    alternative = true,
+  ): Promise<string> {
     const func = alternative
       ? this.getAlternativeMarkdownCitationForCitekey
       : this.getMarkdownCitationForCitekey;
     const citation: string = func.bind(this)(citekey);
-
-    const fullLine = footnoteDetail + citation;
-    this.editor.setLine(this.editor.lastLine(), fullLine);
+    return citation;
   }
 }

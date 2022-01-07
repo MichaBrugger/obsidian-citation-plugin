@@ -81,10 +81,12 @@ export class CitationSettingTab extends PluginSettingTab {
     containerEl.empty();
     containerEl.setAttr('id', 'zoteroSettingTab');
 
-    containerEl.createEl('h2', { text: 'Citation plugin settings' });
-
+    containerEl.createEl('h3', { text: 'General Settings' });
     new Setting(containerEl)
       .setName('Citation database format')
+      .setDesc(
+        'Currently there is much more options in BibLaTex, I will try to add more to CSL-JSON soon.',
+      )
       .addDropdown((component) =>
         this.buildValueInput(
           component.addOptions(CITATION_DATABASE_FORMAT_LABELS),
@@ -111,9 +113,7 @@ export class CitationSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName('Citation database path')
       .setDesc(
-        'Path to citation library exported by your reference manager. ' +
-          'Can be an absolute path or a path relative to the current vault root folder. ' +
-          'Citations will be automatically reloaded whenever this file updates.',
+        'Path (absolute or relative) to citation library exported by your reference manager. ',
       )
       .addText((input) =>
         this.buildValueInput(
@@ -152,7 +152,45 @@ export class CitationSettingTab extends PluginSettingTab {
         'Save literature note files in this folder within your vault. If empty, notes will be stored in the root directory of the vault.',
       );
 
-    containerEl.createEl('h3', { text: 'Template settings' });
+    containerEl.createEl('h3', { text: 'Custom References and Notes' });
+    containerEl.createEl('p', {
+      text:
+        'You can customize all of the below templates to suit your needs. You can use all the variables described in the documentation below.',
+    });
+
+    new Setting(containerEl)
+      .setName('Inline Reference')
+      .addText((input) =>
+        this.buildValueInput(input, 'markdownCitationTemplate'),
+      )
+      .setDesc(
+        'Direct references appear where your cursor is at the time you execute the command.',
+      );
+
+    new Setting(containerEl)
+      .setName('Footnote Reference')
+      .addText((input) =>
+        this.buildValueInput(input, 'alternativeMarkdownCitationTemplate'),
+      )
+      .setDesc(
+        'This is the format used when you insert a footnote. It will leave a reference indicator in the text, and insert the reference in the footnote.',
+      );
+
+    new Setting(containerEl)
+      .setName('Literature Note Title')
+      .addText((input) =>
+        this.buildValueInput(input, 'literatureNoteTitleTemplate'),
+      )
+      .setDesc('Here you customize the title of your literature note.');
+
+    new Setting(containerEl)
+      .setName('Literature Note Content')
+      .addTextArea((input) =>
+        this.buildValueInput(input, 'literatureNoteContentTemplate'),
+      );
+
+    // Instructions on how to use the plugin
+    containerEl.createEl('h3', { text: 'Available Data' });
     const templateInstructionsEl = containerEl.createEl('p');
     templateInstructionsEl.append(
       createSpan({
@@ -186,8 +224,11 @@ export class CitationSettingTab extends PluginSettingTab {
         text: '{{' + key + '}}',
       });
 
-      templateVariableItem.createEl('span', {
-        text: description ? ` — ${description}` : '',
+      templateVariableItem.createEl('i', {
+        // make text smaller
+        cls: 'text-muted',
+
+        text: description ? ` - ${description}` : '',
       });
     });
 
@@ -206,38 +247,6 @@ export class CitationSettingTab extends PluginSettingTab {
       }),
       createSpan({ text: " for information on this object's structure." }),
     );
-
-    containerEl.createEl('h3', { text: 'Literature note templates' });
-
-    new Setting(containerEl)
-      .setName('Literature note title template')
-      .addText((input) =>
-        this.buildValueInput(input, 'literatureNoteTitleTemplate'),
-      );
-
-    new Setting(containerEl)
-      .setName('Literature note content template')
-      .addTextArea((input) =>
-        this.buildValueInput(input, 'literatureNoteContentTemplate'),
-      );
-
-    containerEl.createEl('h3', { text: 'Markdown citation templates' });
-    containerEl.createEl('p', {
-      text:
-        'You can insert Pandoc-style Markdown citations rather than literature notes by using the "Insert Markdown citation" command. The below options allow customization of the Markdown citation format.',
-    });
-
-    new Setting(containerEl)
-      .setName('Markdown primary citation template')
-      .addText((input) =>
-        this.buildValueInput(input, 'markdownCitationTemplate'),
-      );
-
-    new Setting(containerEl)
-      .setName('Markdown secondary citation template')
-      .addText((input) =>
-        this.buildValueInput(input, 'alternativeMarkdownCitationTemplate'),
-      );
   }
 
   /**
